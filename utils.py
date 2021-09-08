@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -6,9 +8,25 @@ import glob
 import os
 
 def opencam(port):
+    '''
+    Open camera using DirectShow (via videoinput).
+
+    Parameters
+    ----------
+    port : Device index, is just the number to specify which camera.
+    '''
+
     return cv2.VideoCapture(port, cv2.CAP_DSHOW)
 
 def numcams():
+    '''
+    Show the number of available devices, their width and height and the port number.
+
+    Return
+    ------
+    Number of devices availables.
+    '''
+
     port = 0
     device_inf = {}
     while True:
@@ -28,6 +46,14 @@ def numcams():
     return int(len(device_inf))
 
 def testdevice(port):
+    '''
+    Test the device, to see if it works correctly.
+
+    Parameters
+    ----------
+    port : Device index, is just the number to specify which camera.
+    '''
+
     cam = opencam(port)
     if not cam.isOpened():
         print("Cannot open camera")
@@ -44,23 +70,38 @@ def testdevice(port):
     cv2.destroyAllWindows()
 
 def takephoto(cam, cnt, path):
+    '''
+    Take a photo of a video frame.
+
+    Parameters
+    ----------
+    cam : cv2.VideoCapture object, you can use the opencam function.
+    cnt : int
+        Number you want the frame capture to have.
+    path : str
+        Desired directory where you want it to be saved.
+    '''
+
     ret, frame = cam.read()
     if ret:
         cv2.imwrite(path + '/img' + '%06d.png'%(cnt), frame)
 
 def takeimages(cam):
+    '''
+    Image capture for the camera calibration stage.
+    The images are stored in a directory named after the date they were taken.
+
+    Parameters
+    ----------
+    cam : cv2.VideoCapture object, you can use the opencam function.
+    '''
+
     path = './images/calibration/' + datetime.now().strftime('%d-%m-%Y')
     if not os.path.exists(path):
         os.makedirs(path)
 
-    print(
-        """
-        -------------------------------------
-        |   Press Esc to finish.            |
-        |   Press Space to take a picture.  |
-        -------------------------------------
-        """
-    )
+    print('Press Esc to finish.')
+    print('Press Space to take a picture.')
 
     cnt = 1
     if not cam.isOpened():
@@ -89,9 +130,30 @@ def takeimages(cam):
     return path
 
 def img640x480(img):
+    '''
+    Resize image to 640x480.
+
+    Parameters
+    ----------
+    img : Image to resize.
+    '''
+
     return cv2.resize(img, (640, 480), interpolation=cv2.INTER_AREA)
 
 def imgpath_inf(imgpath):
+    '''
+    Create dictionary that contains information about the images within a directory.
+
+    Parameters
+    ----------
+    imgpath : str
+        Path of the directory from which you want to know the information of the images.
+
+    Return
+    ------
+    Directory with images information (Number, Name, widh, height, type).
+    '''
+
     img_inf = {}
     if glob.glob(imgpath + '/*.png') or glob.glob(imgpath + '/*.jpg'):
         fnames = os.listdir(imgpath)
@@ -108,6 +170,10 @@ def imgpath_inf(imgpath):
     return img_inf
 
 def show_imgpath_inf(dic):
+    '''
+    Print information about the images.
+    '''
+
     if len(dic) == 0:
         raise ValueError('Dictionary empty')
 
@@ -116,6 +182,26 @@ def show_imgpath_inf(dic):
         print('|    {} : w = {}, h = {}, type = {}'.format(k, v[0], v[1], v[2]))
 
 def findpattern(pattern, patternsize, imgpath, display=True):
+    '''
+    Finding the corners in the chess pattern for the camera calibration stage.
+
+    Parameters
+    ----------
+    pattern : str
+        Name of pattern e.g. chessboard.
+    patternsize : tuple
+        Tuple that contains the size to detect in pattern.
+    imgpath : str
+        Images path for calibration.
+    display : bool
+        True if you want to see the corners detections in each image.
+
+    Returns
+    -------
+    objpoints : 3d point in real world space.
+    imgpoints : 2d points in image plane.
+    '''
+
     if type(patternsize) is not tuple:
         raise ValueError('size must be in tuple format')
     if pattern not in ['chessboard']:
@@ -165,8 +251,26 @@ def findpattern(pattern, patternsize, imgpath, display=True):
     return objpoints, imgpoints
 
 def getintrinsic(objpoints, imgpoints, img_size=(640, 480)):
-    _, k, dist, _, _ = cv2.calibrateCamera(objpoints, imgpoints, img_size, None, None)
-    return k, dist
+    '''
+    Obtain intrinsic and distortion parameters of the camera.
+
+    Parameters
+    ----------
+    objpoints : array
+        3d point in real world space.
+    imgpoints : array
+        2d points in image plane.
+    img_size : tuple
+        Size of the image.
+
+    Returns
+    -------
+    mxt : Intrinsic parameters.
+    dist : Distortion parameters.
+    '''
+
+    _, mxt, dist, _, _ = cv2.calibrateCamera(objpoints, imgpoints, img_size, None, None)
+    return mxt, dist
 
 def circle_pts(r, cx, cy, num_pts):
     # Homogeneous form
